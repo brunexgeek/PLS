@@ -1,15 +1,6 @@
-project(vasr)
+project(PLS)
 
 cmake_minimum_required(VERSION 2.8)
-
-
-find_package(OpenCV)
-
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
 
 
 ################################################################################
@@ -26,7 +17,7 @@ set_property(CACHE  CMAKE_BUILD_PLATFORM PROPERTY STRINGS "Auto" "64 bits" "32 b
 ##
 ## Compilation mode
 ##
-set(CMAKE_BUILD_TYPE "Auto"  CACHE STRING  "Compilation mode")
+set(CMAKE_BUILD_TYPE "Release"  CACHE STRING  "Compilation mode")
 set_property(CACHE  CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
 
@@ -63,18 +54,9 @@ endif()
 
 
 ##
-## Define variables for additional libraries
-##
-find_package (Threads)
-set(VASR_LIBS_THREAD ${CMAKE_THREAD_LIBS_INIT})
-set(VASR_LIBS_DL ${CMAKE_DL_LIBS})
-
-
-##
 ## Define target platform options
 ##
 if (UNIX)
-    set(__ADNDROID__ 0)
     if(CMAKE_BUILD_PLATFORM STREQUAL "32 bits")
         set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32" )
         set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32" )
@@ -110,13 +92,13 @@ if(MSVC)
 endif()
 
 
+find_package(OpenCV)
 
 file(GLOB PLS_SOURCES "source/*.cpp")
 
 include_directories("include")
 add_executable(pls ${PLS_SOURCES})
 target_link_libraries(pls ${OpenCV_LIBS})
-
 
 
 message("")
