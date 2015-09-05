@@ -28,6 +28,10 @@ void PartialLeastSquares::train(
 	const cv::Mat &Ydata,
 	double epsilon )
 {
+	if (/*Xdata.type() != CV_32F || Xdata.type() != CV_64FC1 ||*/ Xdata.type() != Ydata.type())
+		return;
+
+
 	cv::Mat X, Y;
 	int i ;
 
@@ -151,26 +155,26 @@ void PartialLeastSquares::train(
 }
 
 
-const cv::Mat &PartialLeastSquares::getBeta()
+const cv::Mat &PartialLeastSquares::getBeta() const
 {
 	return this->B;
 }
 
 
-const cv::Mat &PartialLeastSquares::getMeanX()
+const cv::Mat &PartialLeastSquares::getMeanX() const
 {
 	return this->mean0X;
 }
 
 
-const cv::Mat &PartialLeastSquares::getMeanY()
+const cv::Mat &PartialLeastSquares::getMeanY() const
 {
 	return this->mean0Y;
 }
 
 
 cv::Mat PartialLeastSquares::project(
-	const cv::Mat &v )
+	const cv::Mat &v ) const
 {
 	cv::Mat temp;
 

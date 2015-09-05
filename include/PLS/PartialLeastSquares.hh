@@ -32,14 +32,14 @@ class PartialLeastSquares
 			const cv::Mat &Ydata,
 			double epsilon = 0.0001 );
 
-		inline const cv::Mat &getBeta();
+		inline const cv::Mat &getBeta() const;
 
-		inline const cv::Mat &getMeanX();
+		inline const cv::Mat &getMeanX() const;
 
-		inline const cv::Mat &getMeanY();
+		inline const cv::Mat &getMeanY() const;
 
 		cv::Mat project(
-			const cv::Mat &v );
+			const cv::Mat &v ) const;
 };
 
 
