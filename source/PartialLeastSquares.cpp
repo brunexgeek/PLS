@@ -28,9 +28,8 @@ void PartialLeastSquares::train(
 	const cv::Mat &Ydata,
 	double epsilon )
 {
-	if (/*Xdata.type() != CV_32F || Xdata.type() != CV_64FC1 ||*/ Xdata.type() != Ydata.type())
+	if (Xdata.type() != Ydata.type())
 		return;
-
 
 	cv::Mat X, Y;
 	int i ;
@@ -39,6 +38,8 @@ void PartialLeastSquares::train(
 
 	Xdata.copyTo(X);
 	Ydata.copyTo(Y);
+	X.convertTo(X, CV_32F);
+	Y.convertTo(Y, CV_32F);
 
 	display("Column-wise mean for X:", Xdata);
 	cv::reduce(X, mean0X, 0, CV_REDUCE_AVG, CV_32F);
@@ -57,14 +58,13 @@ void PartialLeastSquares::train(
 
     cv::Mat T, U, W, C, P, Q, Bdiag, t, w, u, c, p, q, b;
 
-	//float values[1][5] = { { 0.1, 0.2, 0.3, 0.4, 0.5 } };
-	u = cv::Mat(X.rows, 1, CV_32F/*, values*/);
+	u = cv::Mat(X.rows, 1, CV_32F);
 	cv::randu(u, cv::Scalar::all(0), cv::Scalar::all(1));
 
 	display("The initial random guess for u:", u);
 
 	i = 0;
-	int bi = 0;
+	float bi = 0;
 	while (1)
 	{
 		int j = 0;
@@ -89,6 +89,7 @@ void PartialLeastSquares::train(
 			j += 1;
 		}
 		b = t.t() * u;
+		assert(b.cols == 1 && b.rows == 1);
 		bi = b.at<float>(0,0);
 
 		if (T.cols == 0)
@@ -143,6 +144,7 @@ void PartialLeastSquares::train(
 	display("The C matrix:", C);
 	display("The P matrix:", P);
 	display("The b matrix:", Bdiag);
+
 	//display("The final deflated X matrix:", X);
 	//display("The final deflated Y matrix:", Y);
 
@@ -180,6 +182,7 @@ cv::Mat PartialLeastSquares::project(
 
 	// subtract the training X mean
 	v.copyTo(temp);
+	temp.convertTo(temp, CV_32F);
 	for (int i = 0; i < temp.rows; ++i)
 		temp.row(i) -= mean0X;
 	// predict the Y matrix
