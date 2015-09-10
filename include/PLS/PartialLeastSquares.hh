@@ -17,14 +17,16 @@ class PartialLeastSquares
 {
 	private:
 		cv::Mat B, mean0X, mean0Y;
-		bool debug;
+		const int INTERNAL_TYPE = CV_64F;
 
 		inline void display(
 			const char *name,
 			const cv::Mat &value );
 
 	public:
-		PartialLeastSquares( bool debug = false );
+		PartialLeastSquares( );
+		PartialLeastSquares( const cv::Mat &B, const cv::Mat &meanX, const cv::Mat &meanY );
+		PartialLeastSquares( const char *fileName );
 		~PartialLeastSquares();
 
 		void train(
@@ -32,14 +34,16 @@ class PartialLeastSquares
 			const cv::Mat &Ydata,
 			double epsilon = 0.0001 );
 
-		inline const cv::Mat &getBeta() const;
+		const cv::Mat &getB() const;
 
-		inline const cv::Mat &getMeanX() const;
+		const cv::Mat &getMeanX() const;
 
-		inline const cv::Mat &getMeanY() const;
+		const cv::Mat &getMeanY() const;
 
 		cv::Mat project(
 			const cv::Mat &v ) const;
+
+		void save( const char *fileName ) const;
 };
 
 

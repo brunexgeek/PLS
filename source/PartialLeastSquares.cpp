@@ -1,11 +1,31 @@
 #include <PLS/PartialLeastSquares.hh>
 #include <math.h>
+#include <cstdio>
 
 
 
-PartialLeastSquares::PartialLeastSquares( bool debug ) : debug(debug)
+PartialLeastSquares::PartialLeastSquares( )
 {
 	// nothing to do
+}
+
+
+PartialLeastSquares::PartialLeastSquares(
+	const cv::Mat &B,
+	const cv::Mat &meanX,
+	const cv::Mat &meanY ) : B(B), mean0X(meanX), mean0Y(meanY)
+{
+	// nothing to do
+}
+
+
+PartialLeastSquares::PartialLeastSquares( const char *fileName )
+{
+	cv::FileStorage fs(fileName, cv::FileStorage::READ);
+	fs["B"] >> B;
+	fs["meanX"] >> mean0X;
+	fs["meanY"] >> mean0Y;
+	fs.release();
 }
 
 
@@ -19,7 +39,7 @@ void PartialLeastSquares::display(
 	const char *name,
 	const cv::Mat &value )
 {
-	if (debug) std::cout << std::endl << name << std::endl << value << std::endl;
+	std::cout << std::endl << name << std::endl << value << std::endl;
 }
 
 
@@ -32,39 +52,35 @@ void PartialLeastSquares::train(
 		return;
 
 	cv::Mat X, Y;
-	int i ;
 
-	B = cv::Mat();
+	Xdata.convertTo(X, INTERNAL_TYPE);
+	Ydata.convertTo(Y, INTERNAL_TYPE);
 
-	Xdata.copyTo(X);
-	Ydata.copyTo(Y);
-	X.convertTo(X, CV_32F);
-	Y.convertTo(Y, CV_32F);
+	cv::reduce(X, mean0X, 0, CV_REDUCE_AVG, INTERNAL_TYPE);
+	cv::reduce(Y, mean0Y, 0, CV_REDUCE_AVG, INTERNAL_TYPE);
 
-	display("Column-wise mean for X:", Xdata);
-	cv::reduce(X, mean0X, 0, CV_REDUCE_AVG, CV_32F);
-	display("Column-wise mean for X:", mean0X);
-
-    for (i = 0; i < X.rows; ++i)
+    for (int i = 0; i < X.rows; ++i)
 		X.row(i) = X.row(i) - mean0X;
-    display("Zero-mean version of X:", X);
 
-	cv::reduce(Y, mean0Y, 0, CV_REDUCE_AVG, CV_32F);
-	display("Column-wise mean for Y:", mean0Y);
-
-    for (i = 0; i < Y.rows; ++i)
+    for (int i = 0; i < Y.rows; ++i)
 		Y.row(i) = Y.row(i) - mean0Y;
-    display("Zero-mean version of Y:", Y);
+
+#if (0)
+	display("Column-wise mean for X:", mean0X);
+	display("Zero-mean version of X:", X);
+	display("Column-wise mean for Y:", mean0Y);
+	display("Zero-mean version of Y:", Y);
+#endif
 
     cv::Mat T, U, W, C, P, Q, Bdiag, t, w, u, c, p, q, b;
-
-	u = cv::Mat(X.rows, 1, CV_32F);
+	u = cv::Mat(X.rows, 1, INTERNAL_TYPE);
 	cv::randu(u, cv::Scalar::all(0), cv::Scalar::all(1));
 
+#if (0)
 	display("The initial random guess for u:", u);
+#endif
 
-	i = 0;
-	float bi = 0;
+	int i = 0;
 	while (1)
 	{
 		int j = 0;
@@ -82,16 +98,15 @@ void PartialLeastSquares::train(
 			double error = cv::norm(u - u_old);
 			if (error < epsilon)
 			{
-				if (debug)
-					std::cout << "Number of iterations for the " << i << "th latent vector: " << j+1 << std::endl;
+				/*if (debug)
+					std::cout << "Number of iterations for the " << i << "th latent vector: " << j+1 << std::endl;*/
 				break;
 			}
 			j += 1;
 		}
 		b = t.t() * u;
 		assert(b.cols == 1 && b.rows == 1);
-		bi = b.at<float>(0,0);
-
+#if (0)
 		if (T.cols == 0)
 			t.copyTo(T);
 		else
@@ -106,58 +121,57 @@ void PartialLeastSquares::train(
 			w.copyTo(W);
 		else
 			cv::hconcat(W, w, W);
-
+#endif
 		if (C.cols == 0)
 			c.copyTo(C);
 		else
 			cv::hconcat(C, c, C);
 
-		float temp = cv::norm(t);
+		double temp = cv::norm(t);
 		p = X.t() * t / (temp * temp);
+#if (0)
 		temp = cv::norm(u);
 		q = Y.t() * u / (temp * temp);
-
+#endif
 		if (P.cols == 0)
 			p.copyTo(P);
 		else
 			cv::hconcat(P, p, P);
-
+#if (0)
 		if (Q.cols == 0)
 			q.copyTo(Q);
 		else
 			cv::hconcat(Q, q, Q);
-
+#endif
 		if (Bdiag.cols == 0)
 			b.copyTo(Bdiag);
 		else
 			cv::hconcat(Bdiag, b, Bdiag);
 
 		X = X - t * p.t();
-		Y = Y - bi * t * c.t();
+		Y = Y - b.at<double>(0,0) * t * c.t();
 		i += 1;
 		if (cv::norm(X) < 0.001) break;
 	}
+	Bdiag = cv::Mat::diag(Bdiag);
+	B = P.t().inv(cv::DECOMP_SVD);
+	B = B * Bdiag;
+	B = B * C.t();
 
+#if (0)
 	display("The T matrix:", T);
 	display("The U matrix:", U);
 	display("The W matrix:", W);
 	display("The C matrix:", C);
 	display("The P matrix:", P);
 	display("The b matrix:", Bdiag);
-
-	//display("The final deflated X matrix:", X);
-	//display("The final deflated Y matrix:", Y);
-
-	B = cv::Mat::diag(Bdiag);
-	display("The diagonal matrix B of b values:", B);
-	cv::Mat K = P.t().inv(cv::DECOMP_SVD);
-	K = K * B;
-	B = K * C.t();
+	display("The diagonal matrix B of b values:", Bdiag);
 	display("The matrix B of regression coefficients:", B);
+#endif
 }
 
 
-const cv::Mat &PartialLeastSquares::getBeta() const
+const cv::Mat &PartialLeastSquares::getB() const
 {
 	return this->B;
 }
@@ -179,17 +193,29 @@ cv::Mat PartialLeastSquares::project(
 	const cv::Mat &v ) const
 {
 	cv::Mat temp;
+	cv::Mat result = cv::Mat::zeros(v.rows, B.cols, INTERNAL_TYPE);
+	v.convertTo(temp, INTERNAL_TYPE);
 
-	// subtract the training X mean
-	v.copyTo(temp);
-	temp.convertTo(temp, CV_32F);
 	for (int i = 0; i < temp.rows; ++i)
+	{
+		// subtract the training X mean
 		temp.row(i) -= mean0X;
-	// predict the Y matrix
-	temp *= B;
-	// add the training X mean
-	for (int i = 0; i < temp.rows; ++i)
-		temp.row(i) += mean0Y;
+		// predict the Y matrix
+		result.row(i) = temp.row(i) * B;
+		// add the training X mean
+		result.row(i) += mean0Y;
+	}
 
-	return temp;
+	return result;
 }
+
+
+void PartialLeastSquares::save( const char *fileName ) const
+{
+	cv::FileStorage fs(fileName, cv::FileStorage::WRITE);
+	fs << "B" << B;
+	fs << "meanX" << mean0X;
+	fs << "meanY" << mean0Y;
+	fs.release();
+}
+
